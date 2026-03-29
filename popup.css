@@ -1,0 +1,465 @@
+/* ───────── Reset & Base ───────── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #0f1923;
+  --bg-card: #162230;
+  --bg-hover: #1c2d3f;
+  --text: #e8edf2;
+  --text-secondary: #7a8fa3;
+  --accent: #4fc3a1;
+  --accent-glow: rgba(79, 195, 161, 0.15);
+  --accent-dim: rgba(79, 195, 161, 0.6);
+  --gold: #d4a853;
+  --border: rgba(255, 255, 255, 0.06);
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+body {
+  width: 340px;
+  min-height: 480px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ───────── Screens ───────── */
+.screen {
+  display: flex;
+  flex-direction: column;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ───────── Loading ───────── */
+#loading {
+  align-items: center;
+  justify-content: center;
+  min-height: 480px;
+}
+
+.loading-content {
+  text-align: center;
+}
+
+.moon-icon {
+  font-size: 48px;
+  color: var(--gold);
+  animation: pulse 2s ease-in-out infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.loading-content p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* ───────── Error ───────── */
+#error {
+  align-items: center;
+  justify-content: center;
+  min-height: 480px;
+  padding: 32px;
+}
+
+.error-content {
+  text-align: center;
+}
+
+.error-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(235, 87, 87, 0.15);
+  color: #eb5757;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.error-content p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+#retry-btn {
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 10px 24px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#retry-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+}
+
+/* ───────── Permission ───────── */
+#permission {
+  align-items: center;
+  justify-content: center;
+  min-height: 480px;
+  padding: 32px;
+}
+
+.permission-content {
+  text-align: center;
+}
+
+.permission-content h2 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  letter-spacing: -0.3px;
+}
+
+.permission-content p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+#grant-btn {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  padding: 12px 28px;
+  border-radius: 99px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#grant-btn:hover {
+  background: #5dd4b0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px var(--accent-glow);
+}
+
+/* ───────── Header ───────── */
+.header {
+  padding: 20px 20px 14px;
+  background: linear-gradient(180deg, rgba(79, 195, 161, 0.06) 0%, transparent 100%);
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.app-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.location-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.date-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.date-sep {
+  opacity: 0.4;
+}
+
+/* ───────── Countdown Card ───────── */
+.countdown-card {
+  margin: 6px 16px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  text-align: center;
+}
+
+.countdown-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+
+.countdown-label span {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.countdown-time {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.countdown-bar-wrapper {
+  margin-top: 12px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.countdown-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--gold));
+  border-radius: 99px;
+  width: 0%;
+  transition: width 1s linear;
+}
+
+/* ───────── Prayer List ───────── */
+.prayer-list {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.prayer-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.prayer-item:hover {
+  background: var(--bg-hover);
+}
+
+.prayer-icon-wrap {
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.prayer-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  opacity: 0.4;
+  transition: all 0.3s ease;
+}
+
+.prayer-name {
+  font-size: 14px;
+  font-weight: 500;
+  flex: 1;
+}
+
+.prayer-time {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+/* ── Active prayer ── */
+.prayer-item.active {
+  background: var(--accent-glow);
+}
+
+.prayer-item.active .prayer-dot {
+  background: var(--accent);
+  opacity: 1;
+  box-shadow: 0 0 8px var(--accent-dim);
+}
+
+.prayer-item.active .prayer-name {
+  color: var(--accent);
+}
+
+.prayer-item.active .prayer-time {
+  color: var(--accent);
+}
+
+/* ── Next prayer ── */
+.prayer-item.next .prayer-dot {
+  background: var(--gold);
+  opacity: 1;
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(212, 168, 83, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(212, 168, 83, 0); }
+}
+
+.prayer-item.next .prayer-name {
+  color: var(--gold);
+}
+
+.prayer-item.next .prayer-time {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+/* ── Passed prayer ── */
+.prayer-item.passed {
+  opacity: 0.4;
+}
+
+/* ───────── Settings ───────── */
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-header h2 {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.settings-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setting-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-secondary);
+}
+
+.setting-select {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.setting-select:focus {
+  border-color: var(--accent);
+}
+
+.toggle-group {
+  display: flex;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn.active {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* ───────── Animations ───────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#main {
+  animation: fadeIn 0.3s ease;
+}
+
+.prayer-item {
+  animation: fadeIn 0.3s ease backwards;
+}
+
+.prayer-item:nth-child(1) { animation-delay: 0.05s; }
+.prayer-item:nth-child(2) { animation-delay: 0.1s; }
+.prayer-item:nth-child(3) { animation-delay: 0.15s; }
+.prayer-item:nth-child(4) { animation-delay: 0.2s; }
+.prayer-item:nth-child(5) { animation-delay: 0.25s; }
+.prayer-item:nth-child(6) { animation-delay: 0.3s; }

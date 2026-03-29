@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Loading State -->
+    <div id="loading" class="screen">
+      <div class="loading-content">
+        <div class="moon-icon">☽</div>
+        <p>Getting location...</p>
+      </div>
+    </div>
+
+    <!-- Location Permission -->
+    <div id="permission" class="screen hidden">
+      <div class="permission-content">
+        <div class="moon-icon">☽</div>
+        <h2>Vaqt</h2>
+        <p>Please share your location to see prayer times.</p>
+        <button id="grant-btn">Share Location</button>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="screen hidden">
+      <div class="error-content">
+        <div class="error-icon">!</div>
+        <p id="error-message">Something went wrong.</p>
+        <button id="retry-btn">Try Again</button>
+      </div>
+    </div>
+
+    <!-- Main View -->
+    <div id="main" class="screen hidden">
+      <!-- Header -->
+      <div class="header">
+        <div class="header-top">
+          <h1 class="app-title">Vaqt</h1>
+          <button id="settings-btn" class="icon-btn" title="Settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="location-row">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <span id="city-name">---</span>
+        </div>
+        <div class="date-row">
+          <span id="hijri-date"></span>
+          <span class="date-sep">·</span>
+          <span id="gregorian-date"></span>
+        </div>
+      </div>
+
+      <!-- Countdown -->
+      <div class="countdown-card">
+        <div class="countdown-label">Time until <span id="next-prayer-name">---</span></div>
+        <div class="countdown-time" id="countdown">--:--:--</div>
+        <div class="countdown-bar-wrapper">
+          <div class="countdown-bar" id="countdown-bar"></div>
+        </div>
+      </div>
+
+      <!-- Prayer Times -->
+      <div class="prayer-list">
+        <div class="prayer-item" data-prayer="Fajr">
+          <div class="prayer-icon-wrap">
+            <div class="prayer-dot"></div>
+          </div>
+          <span class="prayer-name">Fajr</span>
+          <span class="prayer-time" id="time-fajr">--:--</span>
+        </div>
+        <div class="prayer-item" data-prayer="Sunrise">
+          <div class="prayer-icon-wrap">
+            <div class="prayer-dot"></div>
+          </div>
+          <span class="prayer-name">Sunrise</span>
+          <span class="prayer-time" id="time-sunrise">--:--</span>
+        </div>
+        <div class="prayer-item" data-prayer="Dhuhr">
+          <div class="prayer-icon-wrap">
+            <div class="prayer-dot"></div>
+          </div>
+          <span class="prayer-name">Dhuhr</span>
+          <span class="prayer-time" id="time-dhuhr">--:--</span>
+        </div>
+        <div class="prayer-item" data-prayer="Asr">
+          <div class="prayer-icon-wrap">
+            <div class="prayer-dot"></div>
+          </div>
+          <span class="prayer-name">Asr</span>
+          <span class="prayer-time" id="time-asr">--:--</span>
+        </div>
+        <div class="prayer-item" data-prayer="Maghrib">
+          <div class="prayer-icon-wrap">
+            <div class="prayer-dot"></div>
+          </div>
+          <span class="prayer-name">Maghrib</span>
+          <span class="prayer-time" id="time-maghrib">--:--</span>
+        </div>
+        <div class="prayer-item" data-prayer="Isha">
+          <div class="prayer-icon-wrap">
+            <div class="prayer-dot"></div>
+          </div>
+          <span class="prayer-name">Isha</span>
+          <span class="prayer-time" id="time-isha">--:--</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings View -->
+    <div id="settings" class="screen hidden">
+      <div class="settings-header">
+        <button id="back-btn" class="icon-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+        <h2>Settings</h2>
+      </div>
+      <div class="settings-body">
+        <div class="setting-group">
+          <label class="setting-label">Calculation Method</label>
+          <select id="calc-method" class="setting-select">
+            <option value="13">Diyanet (Turkey)</option>
+            <option value="2">ISNA (North America)</option>
+            <option value="3">MWL (Muslim World League)</option>
+            <option value="4">Umm Al-Qura (Makkah)</option>
+            <option value="5">Egyptian General Authority</option>
+            <option value="1">University of Karachi</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Time Format</label>
+          <div class="toggle-group">
+            <button class="toggle-btn active" data-format="24h">24 Hour</button>
+            <button class="toggle-btn" data-format="12h">12 Hour</button>
+          </div>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Notifications</label>
+          <div class="toggle-group">
+            <button class="toggle-btn active" data-notif="on">On</button>
+            <button class="toggle-btn" data-notif="off">Off</button>
+          </div>
+        </div>
+        <div class="setting-group">
+          <label class="setting-label">Sound</label>
+          <div class="toggle-group">
+            <button class="toggle-btn active" data-sound="on">On</button>
+            <button class="toggle-btn" data-sound="off">Off</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

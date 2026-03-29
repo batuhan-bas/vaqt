@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "Vaqt - Prayer Times",
+    "description": "Extension name"
+  },
+  "appDescription": {
+    "message": "A sleek and minimal extension that shows daily prayer times based on your location.",
+    "description": "Extension description"
+  }
+}
