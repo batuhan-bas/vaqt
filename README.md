@@ -14,6 +14,12 @@
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
 </p>
 
+## Screenshots
+
+| Prayer Times | Settings |
+|:---:|:---:|
+| <img src="screenshots/Screenshot-1.png" alt="Prayer Times" width="390"> | <img src="screenshots/Screenshot-2.png" alt="Settings" width="390"> |
+
 ## Features
 
 - **Location-based prayer times** — automatically detects your location to show accurate times
