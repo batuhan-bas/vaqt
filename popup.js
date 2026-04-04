@@ -34,6 +34,13 @@ const $countdown = document.getElementById('countdown');
 const $countdownBar = document.getElementById('countdown-bar');
 const $nextPrayerName = document.getElementById('next-prayer-name');
 const $calcMethod = document.getElementById('calc-method');
+const $citySearch = document.getElementById('city-search');
+const $cityResults = document.getElementById('city-results');
+const $settingsCityInput = document.getElementById('settings-city-input');
+const $settingsCityResults = document.getElementById('settings-city-results');
+const $settingsCitySearch = document.getElementById('settings-city-search');
+const $changeLocationBtn = document.getElementById('change-location-btn');
+const $currentLocation = document.getElementById('current-location');
 
 /* ───────── Settings Helpers ───────── */
 async function loadSettings() {
@@ -81,6 +88,79 @@ async function reverseGeocode(lat, lng) {
     return addr.city || addr.town || addr.county || addr.state || 'Unknown Location';
   } catch {
     return 'Unknown Location';
+  }
+}
+
+/* ───────── City Search ───────── */
+let searchTimeout = null;
+
+async function searchCities(query) {
+  if (query.length < 2) return [];
+  try {
+    const res = await fetch(
+      `${GEOCODE_BASE}/search?q=${encodeURIComponent(query)}&format=json&limit=5&accept-language=en`
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.map((item) => ({
+      name: item.display_name.split(',')[0].trim(),
+      detail: item.display_name.split(',').slice(1, 3).join(',').trim(),
+      lat: parseFloat(item.lat),
+      lng: parseFloat(item.lon),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function setupCitySearch(input, resultsContainer, onSelect) {
+  input.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    const query = input.value.trim();
+    if (query.length < 2) {
+      resultsContainer.classList.add('hidden');
+      return;
+    }
+    resultsContainer.innerHTML = '<div class="city-searching">Searching...</div>';
+    resultsContainer.classList.remove('hidden');
+    searchTimeout = setTimeout(async () => {
+      const cities = await searchCities(query);
+      if (cities.length === 0) {
+        resultsContainer.innerHTML = '<div class="city-searching">No results found</div>';
+        return;
+      }
+      resultsContainer.innerHTML = cities
+        .map(
+          (c, i) =>
+            `<div class="city-result-item" data-index="${i}">
+              <div class="city-result-name">${c.name}</div>
+              <div class="city-result-detail">${c.detail}</div>
+            </div>`
+        )
+        .join('');
+      resultsContainer.querySelectorAll('.city-result-item').forEach((el) => {
+        el.addEventListener('click', () => {
+          const city = cities[parseInt(el.dataset.index)];
+          onSelect(city);
+          input.value = '';
+          resultsContainer.classList.add('hidden');
+        });
+      });
+    }, 400);
+  });
+}
+
+async function selectCity(city) {
+  showScreen($loading);
+  try {
+    await saveSettings({ lat: city.lat, lng: city.lng, city: city.name });
+    $cityName.textContent = city.name;
+    $currentLocation.textContent = city.name;
+    const settings = await loadSettings();
+    await loadPrayerData(settings);
+    showScreen($main);
+  } catch (err) {
+    showError(err.message);
   }
 }
 
@@ -310,6 +390,21 @@ document.querySelectorAll('[data-sound]').forEach((btn) => {
   });
 });
 
+/* ───────── City Search Setup ───────── */
+setupCitySearch($citySearch, $cityResults, selectCity);
+setupCitySearch($settingsCityInput, $settingsCityResults, async (city) => {
+  await selectCity(city);
+  $settingsCitySearch.classList.add('hidden');
+  showScreen($settings);
+});
+
+$changeLocationBtn.addEventListener('click', () => {
+  $settingsCitySearch.classList.toggle('hidden');
+  if (!$settingsCitySearch.classList.contains('hidden')) {
+    $settingsCityInput.focus();
+  }
+});
+
 /* ───────── Main Flow ───────── */
 async function loadPrayerData(settings) {
   const data = await fetchPrayerTimes(settings.lat, settings.lng, settings.method);
@@ -337,32 +432,43 @@ async function init() {
     btn.classList.toggle('active', btn.dataset.sound === (isOn ? 'on' : 'off'));
   });
 
+  // If we already have a saved location, use it directly
+  if (settings.lat && settings.lng) {
+    try {
+      $cityName.textContent = settings.city || 'Location';
+      $currentLocation.textContent = settings.city || 'Location';
+      await loadPrayerData(settings);
+      showScreen($main);
+      // Refresh location in background
+      getLocation().then(async (loc) => {
+        const city = await reverseGeocode(loc.lat, loc.lng);
+        await saveSettings({ lat: loc.lat, lng: loc.lng, city });
+        $cityName.textContent = city;
+        $currentLocation.textContent = city;
+      }).catch(() => {});
+      return;
+    } catch (apiErr) {
+      showError(apiErr.message);
+      return;
+    }
+  }
+
+  // No saved location — try geolocation
   try {
     const loc = await getLocation();
     const city = await reverseGeocode(loc.lat, loc.lng);
     await saveSettings({ lat: loc.lat, lng: loc.lng, city });
 
     $cityName.textContent = city;
+    $currentLocation.textContent = city;
 
     const updatedSettings = await loadSettings();
     await loadPrayerData(updatedSettings);
 
     showScreen($main);
   } catch (err) {
-    // If location failed but we have cache, use it
-    if (settings.lat && settings.lng) {
-      try {
-        $cityName.textContent = settings.city || 'Location';
-        await loadPrayerData(settings);
-        showScreen($main);
-      } catch (apiErr) {
-        showError(apiErr.message);
-      }
-    } else if (err.message.includes('permission denied') || err.message.includes('does not support')) {
-      showScreen($permission);
-    } else {
-      showError(err.message);
-    }
+    // Geolocation failed and no cache — show permission screen with city search
+    showScreen($permission);
   }
 }
 

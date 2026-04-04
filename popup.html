@@ -22,6 +22,11 @@
         <h2>Vaqt</h2>
         <p>Please share your location to see prayer times.</p>
         <button id="grant-btn">Share Location</button>
+        <div class="divider-text"><span>or search for a city</span></div>
+        <div class="city-search-wrap">
+          <input type="text" id="city-search" class="city-input" placeholder="e.g. Istanbul, London, New York" autocomplete="off">
+          <div id="city-results" class="city-results hidden"></div>
+        </div>
       </div>
     </div>
 
@@ -128,6 +133,17 @@
         <h2>Settings</h2>
       </div>
       <div class="settings-body">
+        <div class="setting-group">
+          <label class="setting-label">Location</label>
+          <div class="location-setting">
+            <span id="current-location" class="current-location-text">---</span>
+            <button id="change-location-btn" class="change-location-btn">Change</button>
+          </div>
+          <div id="settings-city-search" class="city-search-wrap hidden">
+            <input type="text" id="settings-city-input" class="city-input" placeholder="Search for a city..." autocomplete="off">
+            <div id="settings-city-results" class="city-results hidden"></div>
+          </div>
+        </div>
         <div class="setting-group">
           <label class="setting-label">Calculation Method</label>
           <select id="calc-method" class="setting-select">
