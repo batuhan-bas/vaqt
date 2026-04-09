@@ -10,7 +10,6 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4?logo=googlechrome&logoColor=white" alt="Chrome">
-  <img src="https://img.shields.io/badge/Edge-Supported-0078D7?logo=microsoftedge&logoColor=white" alt="Edge">
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
 </p>
 
@@ -35,8 +34,7 @@
 
 ## Install
 
-<!-- Replace # with actual store links when published -->
-[Chrome Web Store](#) · [Edge Add-ons](#)
+[<img src="https://img.shields.io/badge/Chrome%20Web%20Store-Available-4285F4?logo=googlechrome&logoColor=white" alt="Chrome Web Store">](https://chromewebstore.google.com/detail/vaqt-prayer-times/bhiafnmnhchmknldkdlmmjfmclkmnfmi)
 
 ## Settings
 
