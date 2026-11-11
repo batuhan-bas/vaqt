@@ -1,15 +1,5 @@
 /* ───────── Constants ───────── */
-const PRAYER_KEYS = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-const PRAYER_LABELS = {
-  Fajr: 'Fajr',
-  Sunrise: 'Sunrise',
-  Dhuhr: 'Dhuhr',
-  Asr: 'Asr',
-  Maghrib: 'Maghrib',
-  Isha: 'Isha',
-};
-
-const API_BASE = 'https://api.aladhan.com/v1';
+// PRAYER_KEYS, PRAYER_LABELS and the time helpers live in shared.js.
 const GEOCODE_BASE = 'https://nominatim.openstreetmap.org';
 
 /* ───────── State ───────── */
@@ -41,10 +31,12 @@ const $settingsCityResults = document.getElementById('settings-city-results');
 const $settingsCitySearch = document.getElementById('settings-city-search');
 const $changeLocationBtn = document.getElementById('change-location-btn');
 const $currentLocation = document.getElementById('current-location');
+const $useLocationBtn = document.getElementById('use-location-btn');
 
 /* ───────── Settings Helpers ───────── */
 async function loadSettings() {
-  const defaults = { method: 13, timeFormat: '24h', notifications: true, sound: true, lat: null, lng: null, city: null };
+  // locationSource: 'gps' follows the device, 'manual' keeps the city the user picked.
+  const defaults = { method: 13, timeFormat: '24h', notifications: true, sound: true, lat: null, lng: null, city: null, locationSource: 'gps' };
   try {
     const result = await chrome.storage.local.get('settings');
     return { ...defaults, ...(result.settings || {}) };
@@ -92,10 +84,16 @@ async function reverseGeocode(lat, lng) {
 }
 
 /* ───────── City Search ───────── */
-let searchTimeout = null;
+// The public Nominatim server allows at most 1 request per second and no
+// search-as-you-type, so we search only when the user presses Enter.
+const SEARCH_MIN_INTERVAL_MS = 1000;
+let lastSearchAt = 0;
 
 async function searchCities(query) {
   if (query.length < 2) return [];
+  const wait = lastSearchAt + SEARCH_MIN_INTERVAL_MS - Date.now();
+  if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+  lastSearchAt = Date.now();
   try {
     const res = await fetch(
       `${GEOCODE_BASE}/search?q=${encodeURIComponent(query)}&format=json&limit=5&accept-language=en`
@@ -113,47 +111,75 @@ async function searchCities(query) {
   }
 }
 
+function showSearchMessage(container, text) {
+  const msg = document.createElement('div');
+  msg.className = 'city-searching';
+  msg.textContent = text;
+  container.replaceChildren(msg);
+}
+
+// Place names come from a third-party API, so they are set with textContent,
+// never innerHTML.
+function renderCityResults(container, cities, onPick) {
+  const items = cities.map((city) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'city-result-item';
+
+    const name = document.createElement('div');
+    name.className = 'city-result-name';
+    name.textContent = city.name;
+
+    const detail = document.createElement('div');
+    detail.className = 'city-result-detail';
+    detail.textContent = city.detail;
+
+    btn.append(name, detail);
+    btn.addEventListener('click', () => onPick(city));
+    return btn;
+  });
+
+  const credit = document.createElement('a');
+  credit.className = 'city-credit';
+  credit.href = 'https://www.openstreetmap.org/copyright';
+  credit.target = '_blank';
+  credit.rel = 'noopener';
+  credit.textContent = '© OpenStreetMap contributors';
+
+  container.replaceChildren(...items, credit);
+}
+
 function setupCitySearch(input, resultsContainer, onSelect) {
   input.addEventListener('input', () => {
-    clearTimeout(searchTimeout);
+    if (input.value.trim().length < 2) resultsContainer.classList.add('hidden');
+  });
+
+  input.addEventListener('keydown', async (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
     const query = input.value.trim();
-    if (query.length < 2) {
-      resultsContainer.classList.add('hidden');
+    if (query.length < 2) return;
+
+    showSearchMessage(resultsContainer, 'Searching...');
+    resultsContainer.classList.remove('hidden');
+
+    const cities = await searchCities(query);
+    if (cities.length === 0) {
+      showSearchMessage(resultsContainer, 'No results found');
       return;
     }
-    resultsContainer.innerHTML = '<div class="city-searching">Searching...</div>';
-    resultsContainer.classList.remove('hidden');
-    searchTimeout = setTimeout(async () => {
-      const cities = await searchCities(query);
-      if (cities.length === 0) {
-        resultsContainer.innerHTML = '<div class="city-searching">No results found</div>';
-        return;
-      }
-      resultsContainer.innerHTML = cities
-        .map(
-          (c, i) =>
-            `<div class="city-result-item" data-index="${i}">
-              <div class="city-result-name">${c.name}</div>
-              <div class="city-result-detail">${c.detail}</div>
-            </div>`
-        )
-        .join('');
-      resultsContainer.querySelectorAll('.city-result-item').forEach((el) => {
-        el.addEventListener('click', () => {
-          const city = cities[parseInt(el.dataset.index)];
-          onSelect(city);
-          input.value = '';
-          resultsContainer.classList.add('hidden');
-        });
-      });
-    }, 400);
+    renderCityResults(resultsContainer, cities, (city) => {
+      onSelect(city);
+      input.value = '';
+      resultsContainer.classList.add('hidden');
+    });
   });
 }
 
 async function selectCity(city) {
   showScreen($loading);
   try {
-    await saveSettings({ lat: city.lat, lng: city.lng, city: city.name });
+    await saveSettings({ lat: city.lat, lng: city.lng, city: city.name, locationSource: 'manual' });
     $cityName.textContent = city.name;
     $currentLocation.textContent = city.name;
     const settings = await loadSettings();
@@ -166,16 +192,9 @@ async function selectCity(city) {
 
 /* ───────── API ───────── */
 async function fetchPrayerTimes(lat, lng, method) {
-  const today = new Date();
-  const dd = String(today.getDate()).padStart(2, '0');
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const yyyy = today.getFullYear();
-
-  const url = `${API_BASE}/timings/${dd}-${mm}-${yyyy}?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}&method=${encodeURIComponent(method)}`;
-
   let res;
   try {
-    res = await fetch(url);
+    res = await fetch(timingsUrl(lat, lng, method));
   } catch {
     throw new Error('Could not fetch prayer times. Please check your internet connection.');
   }
@@ -217,7 +236,7 @@ function showError(message) {
 }
 
 function formatTime(timeStr, format) {
-  const clean = timeStr.replace(/\s*\(.*\)/, '');
+  const clean = cleanTime(timeStr);
   if (format === '24h') return clean;
 
   const [h, m] = clean.split(':').map(Number);
@@ -226,23 +245,17 @@ function formatTime(timeStr, format) {
   return `${h12}:${String(m).padStart(2, '0')} ${period}`;
 }
 
-function parseTimeToDate(timeStr) {
-  const clean = timeStr.replace(/\s*\(.*\)/, '');
-  const [h, m] = clean.split(':').map(Number);
-  const d = new Date();
-  d.setHours(h, m, 0, 0);
-  return d;
-}
-
-function renderPrayerTimes(timings, format) {
-  const now = new Date();
+// Times are shown as the location's wall clock; comparisons use absolute
+// times from prayerEpoch so a city in another time zone still counts down right.
+function renderPrayerTimes(data, format) {
+  const timings = data.timings;
+  const now = Date.now();
   let nextPrayer = null;
   let activePrayer = null;
 
   for (let i = 0; i < PRAYER_KEYS.length; i++) {
     const key = PRAYER_KEYS[i];
-    const prayerDate = parseTimeToDate(timings[key]);
-    if (prayerDate > now) {
+    if (prayerEpoch(data, key) > now) {
       nextPrayer = key;
       activePrayer = i > 0 ? PRAYER_KEYS[i - 1] : null;
       break;
@@ -265,11 +278,8 @@ function renderPrayerTimes(timings, format) {
       el.classList.add('active');
     } else if (key === nextPrayer) {
       el.classList.add('next');
-    } else {
-      const prayerDate = parseTimeToDate(timings[key]);
-      if (prayerDate < now) {
-        el.classList.add('passed');
-      }
+    } else if (prayerEpoch(data, key) < now) {
+      el.classList.add('passed');
     }
   });
 
@@ -286,30 +296,27 @@ function renderDates(dateData) {
     $hijriDate.textContent = `${hijri.day} ${hijri.month.en} ${hijri.year}`;
   }
 
+  // Built from the API's own date parts. Parsing a "YYYY-M-D" string with
+  // new Date() can land on the previous day in time zones behind UTC.
   if (greg) {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
-    ];
-    const d = new Date(`${greg.year}-${greg.month.number}-${greg.day}`);
-    $gregorianDate.textContent = `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    $gregorianDate.textContent = `${greg.month.en} ${Number(greg.day)}, ${greg.year}`;
   }
 }
 
 /* ───────── Countdown ───────── */
-function startCountdown(timings, nextKey) {
+function startCountdown(data, nextKey) {
   if (countdownInterval) clearInterval(countdownInterval);
 
   function tick() {
-    const now = new Date();
+    const now = Date.now();
     let target;
 
     if (nextKey) {
-      target = parseTimeToDate(timings[nextKey]);
+      target = prayerEpoch(data, nextKey);
       $nextPrayerName.textContent = PRAYER_LABELS[nextKey];
     } else {
-      target = parseTimeToDate(timings.Fajr);
-      target.setDate(target.getDate() + 1);
+      // After Isha: tomorrow's Fajr, approximated by today's Fajr + 24h.
+      target = prayerEpoch(data, 'Fajr') + DAY_MS;
       $nextPrayerName.textContent = PRAYER_LABELS.Fajr;
     }
 
@@ -330,13 +337,10 @@ function startCountdown(timings, nextKey) {
       ? PRAYER_KEYS[PRAYER_KEYS.indexOf(nextKey) - 1]
       : PRAYER_KEYS[PRAYER_KEYS.length - 1];
 
-    let prevTime;
-    if (prevKey) {
-      prevTime = parseTimeToDate(timings[prevKey]);
-    } else {
-      prevTime = new Date();
-      prevTime.setHours(0, 0, 0, 0);
-    }
+    // Before Fajr the previous prayer is yesterday's Isha.
+    const prevTime = prevKey
+      ? prayerEpoch(data, prevKey)
+      : prayerEpoch(data, 'Isha') - DAY_MS;
 
     const total = target - prevTime;
     const elapsed = now - prevTime;
@@ -369,7 +373,7 @@ document.querySelectorAll('[data-format]').forEach((btn) => {
     btn.classList.add('active');
     const settings = await saveSettings({ timeFormat: btn.dataset.format });
     if (prayerTimes.timings) {
-      renderPrayerTimes(prayerTimes.timings, settings.timeFormat);
+      renderPrayerTimes(prayerTimes, settings.timeFormat);
     }
   });
 });
@@ -409,9 +413,17 @@ $changeLocationBtn.addEventListener('click', () => {
 async function loadPrayerData(settings) {
   const data = await fetchPrayerTimes(settings.lat, settings.lng, settings.method);
   prayerTimes = data;
-  const nextKey = renderPrayerTimes(data.timings, settings.timeFormat);
+  const nextKey = renderPrayerTimes(data, settings.timeFormat);
   renderDates(data.date);
-  startCountdown(data.timings, nextKey);
+  startCountdown(data, nextKey);
+}
+
+async function useDeviceLocation() {
+  const loc = await getLocation();
+  const city = await reverseGeocode(loc.lat, loc.lng);
+  await saveSettings({ lat: loc.lat, lng: loc.lng, city, locationSource: 'gps' });
+  $cityName.textContent = city;
+  $currentLocation.textContent = city;
 }
 
 async function init() {
@@ -439,13 +451,10 @@ async function init() {
       $currentLocation.textContent = settings.city || 'Location';
       await loadPrayerData(settings);
       showScreen($main);
-      // Refresh location in background
-      getLocation().then(async (loc) => {
-        const city = await reverseGeocode(loc.lat, loc.lng);
-        await saveSettings({ lat: loc.lat, lng: loc.lng, city });
-        $cityName.textContent = city;
-        $currentLocation.textContent = city;
-      }).catch(() => {});
+      // Follow the device only if the user hasn't picked a city by hand.
+      if (settings.locationSource !== 'manual') {
+        useDeviceLocation().catch(() => {});
+      }
       return;
     } catch (apiErr) {
       showError(apiErr.message);
@@ -455,13 +464,7 @@ async function init() {
 
   // No saved location — try geolocation
   try {
-    const loc = await getLocation();
-    const city = await reverseGeocode(loc.lat, loc.lng);
-    await saveSettings({ lat: loc.lat, lng: loc.lng, city });
-
-    $cityName.textContent = city;
-    $currentLocation.textContent = city;
-
+    await useDeviceLocation();
     const updatedSettings = await loadSettings();
     await loadPrayerData(updatedSettings);
 
@@ -473,6 +476,18 @@ async function init() {
 }
 
 $grantBtn.addEventListener('click', () => init());
+
+$useLocationBtn.addEventListener('click', async () => {
+  showScreen($loading);
+  try {
+    await useDeviceLocation();
+    await loadPrayerData(await loadSettings());
+    $settingsCitySearch.classList.add('hidden');
+    showScreen($settings);
+  } catch (err) {
+    showError(err.message);
+  }
+});
 $retryBtn.addEventListener('click', () => init());
 
 // Start
