@@ -1,17 +1,7 @@
 // Background service worker for Vaqt
 // Handles alarms, notifications, and offscreen geolocation
 
-const PRAYER_LABELS = {
-  Fajr: 'Fajr',
-  Sunrise: 'Sunrise',
-  Dhuhr: 'Dhuhr',
-  Asr: 'Asr',
-  Maghrib: 'Maghrib',
-  Isha: 'Isha',
-};
-
-const PRAYER_KEYS = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-const API_BASE = 'https://api.aladhan.com/v1';
+importScripts('shared.js');
 
 /* ───────── Alarms ───────── */
 chrome.alarms.onAlarm.addListener(async (alarm) => {
@@ -40,14 +30,22 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   }
 });
 
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.alarms.create('refresh-times', {
-    periodInMinutes: 60,
-  });
+// Chrome may clear alarms when the browser restarts, so recreate the hourly
+// refresh on startup too. Without it, notifications stop the next day.
+async function ensureRefreshAlarm() {
+  const existing = await chrome.alarms.get('refresh-times');
+  if (!existing) {
+    await chrome.alarms.create('refresh-times', { periodInMinutes: 60 });
+  }
+}
+
+chrome.runtime.onInstalled.addListener(async () => {
+  await ensureRefreshAlarm();
   schedulePrayerAlarms();
 });
 
-chrome.runtime.onStartup.addListener(() => {
+chrome.runtime.onStartup.addListener(async () => {
+  await ensureRefreshAlarm();
   schedulePrayerAlarms();
 });
 
@@ -63,19 +61,12 @@ async function schedulePrayerAlarms() {
   const settings = result.settings;
   if (!settings || !settings.lat || !settings.lng) return;
 
-  const today = new Date();
-  const dd = String(today.getDate()).padStart(2, '0');
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const yyyy = today.getFullYear();
-
   let data;
   try {
-    const res = await fetch(
-      `${API_BASE}/timings/${dd}-${mm}-${yyyy}?latitude=${settings.lat}&longitude=${settings.lng}&method=${settings.method || 13}`
-    );
+    const res = await fetch(timingsUrl(settings.lat, settings.lng, settings.method || 13));
     const json = await res.json();
     if (!json || json.code !== 200 || !json.data || !json.data.timings) return;
-    data = json.data.timings;
+    data = json.data;
   } catch {
     return;
   }
@@ -91,16 +82,9 @@ async function schedulePrayerAlarms() {
   for (const key of PRAYER_KEYS) {
     if (key === 'Sunrise') continue; // No notification for sunrise
 
-    const timeStr = data[key].replace(/\s*\(.*\)/, '');
-    const [h, m] = timeStr.split(':').map(Number);
-
-    const prayerTime = new Date();
-    prayerTime.setHours(h, m, 0, 0);
-
-    if (prayerTime.getTime() > now) {
-      chrome.alarms.create(`prayer-${key}`, {
-        when: prayerTime.getTime(),
-      });
+    const when = prayerEpoch(data, key);
+    if (when > now) {
+      chrome.alarms.create(`prayer-${key}`, { when });
     }
   }
 }

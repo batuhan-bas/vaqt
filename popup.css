@@ -225,19 +225,42 @@ body {
 }
 
 .city-result-item {
+  display: block;
+  width: 100%;
   padding: 10px 12px;
+  font: inherit;
   font-size: 13px;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.15s ease;
-  border-bottom: 1px solid var(--border);
 }
 
-.city-result-item:last-child {
-  border-bottom: none;
-}
-
-.city-result-item:hover {
+.city-result-item:hover,
+.city-result-item:focus-visible {
   background: var(--bg-hover);
+  outline: none;
+}
+
+.city-credit {
+  display: block;
+  padding: 6px 12px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-align: right;
+  text-decoration: none;
+}
+
+.city-credit:hover {
+  text-decoration: underline;
+}
+
+.use-location-btn {
+  align-self: flex-start;
+  margin-top: 8px;
 }
 
 .city-result-item .city-result-name {
